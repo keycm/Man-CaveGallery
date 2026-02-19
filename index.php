@@ -592,8 +592,9 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
                         </div>
                     <?php else: ?>
                         <?php
-                        // SINGLE LOOP
-                        foreach ($artworks as $art):
+                        // DOUBLE LOOP FOR INFINITE SCROLL
+                        for ($i = 0; $i < 2; $i++):
+                            foreach ($artworks as $art):
                                 $isSold = ($art['status'] === 'Sold' || $art['active_booking_status'] === 'completed');
                                 $isReserved = ($art['status'] === 'Reserved' || $art['active_booking_status'] === 'approved');
                                 $isAvailable = ($art['status'] === 'Available' && !$isSold && !$isReserved);
@@ -669,7 +670,7 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
                                 </div>
                             </div>
                         </div>
-                        <?php endforeach; ?>
+                        <?php endforeach; endfor; ?>
                     <?php endif; ?>
                 </div>
             </div>
@@ -1536,13 +1537,47 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
         });
 
         // ==========================================
-        // === MANUAL SCROLL LOGIC ===
+        // === AUTO SCROLL + MANUAL LOGIC ===
         // ==========================================
+        const track = document.getElementById('marqueeTrack');
+        let autoScrollSpeed = 0.5; // Adjust speed
+        let isHovered = false;
+        let animationId;
+
+        function autoScroll() {
+            if (!isHovered && track) {
+                // If scrolled to halfway (end of first set), snap back to 0
+                // Note: This assumes precise duplication.
+                // We use scrollWidth / 2 roughly.
+                if (track.scrollLeft >= (track.scrollWidth / 2) - 10) {
+                    track.scrollLeft = 0;
+                } else {
+                    track.scrollLeft += autoScrollSpeed;
+                }
+            }
+            animationId = requestAnimationFrame(autoScroll);
+        }
+
+        if (track) {
+            // Start Auto Scroll
+            animationId = requestAnimationFrame(autoScroll);
+
+            // Pause on Hover
+            track.addEventListener('mouseenter', () => isHovered = true);
+            track.addEventListener('mouseleave', () => isHovered = false);
+
+            // Also pause when hovering navigation buttons
+            const navs = document.querySelectorAll('.marquee-nav button');
+            navs.forEach(btn => {
+                btn.addEventListener('mouseenter', () => isHovered = true);
+                btn.addEventListener('mouseleave', () => isHovered = false);
+            });
+        }
+
         function scrollInventory(direction) {
-            const track = document.getElementById('marqueeTrack');
-            // Check card width by selecting first card
+            if (!track) return;
             const card = track.querySelector('.art-card-new');
-            const cardWidth = card ? (card.offsetWidth + 30) : 330; // 30px gap
+            const cardWidth = card ? (card.offsetWidth + 30) : 330;
             track.scrollBy({ left: direction * cardWidth, behavior: 'smooth' });
         }
     </script>
