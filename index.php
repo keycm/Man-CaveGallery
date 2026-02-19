@@ -445,6 +445,11 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
                 <li><a href="#contact-form">Visit</a></li>
             </ul>
             <div class="nav-actions">
+                <!-- Dark Mode Toggle -->
+                <button class="header-icon-btn" id="themeToggle" title="Toggle Dark Mode">
+                    <i class="fas fa-moon"></i>
+                </button>
+
                 <?php if ($loggedIn): ?>
                     <a href="favorites" class="header-icon-btn" title="My Favorites"> <i class="far fa-heart"></i>
                     </a>
@@ -1154,6 +1159,29 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script>
         AOS.init({ duration: 800, offset: 50 });
+
+        // --- THEME TOGGLE LOGIC ---
+        const themeBtn = document.getElementById('themeToggle');
+        const themeIcon = themeBtn.querySelector('i');
+
+        // Check saved theme
+        if (localStorage.getItem('theme') === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            themeIcon.classList.replace('fa-moon', 'fa-sun');
+        }
+
+        themeBtn.addEventListener('click', () => {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            if (isDark) {
+                document.documentElement.removeAttribute('data-theme');
+                localStorage.setItem('theme', 'light');
+                themeIcon.classList.replace('fa-sun', 'fa-moon');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+                themeIcon.classList.replace('fa-moon', 'fa-sun');
+            }
+        });
 
         // --- BURGER MENU TOGGLE ---
         function toggleMobileMenu() {

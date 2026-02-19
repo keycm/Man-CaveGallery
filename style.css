@@ -356,3 +356,15 @@ footer { background: #1a1a1a; color: #bbb; padding: 80px 0 30px; font-size: 0.95
     color: var(--white);
     border-color: var(--accent);
 }
+
+/* === DARK MODE === */
+[data-theme="dark"] {
+    --primary: #f0f0f0;
+    --secondary: #b0b0b0;
+    --bg-light: #121212;
+    --bg-dark: #000000;
+    --white: #1e1e1e;
+    --border-color: #333333;
+    --shadow-soft: 0 5px 20px rgba(0,0,0,0.5);
+    --shadow-hover: 0 10px 30px rgba(0,0,0,0.7);
+}
