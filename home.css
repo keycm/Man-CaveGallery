@@ -82,11 +82,13 @@
         .marquee-track {
             display: flex;
             gap: 30px;
-            width: max-content;
-            /* Animation is now handled by JS for control */
-            transform: translateX(0);
-            will-change: transform;
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            width: 100%;
+            padding: 20px 50px; /* Extra padding for side visibility */
+            scrollbar-width: none;
         }
+        .marquee-track::-webkit-scrollbar { display: none; }
 
         /* CARD STYLES */
         .art-card-new { 
