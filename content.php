@@ -594,9 +594,24 @@ else $greeting = "Good Evening";
 
         <div id="events" class="tab-pane">
             <div class="grid-layout">
-                <div class="card form-card">
-                    <div class="card-header"><h3 id="eventFormTitle">Add Event</h3></div>
-                    <form id="eventForm">
+                <div>
+                    <!-- NEW: Manage Section Image -->
+                    <div class="card form-card mb-4" style="margin-bottom: 20px;">
+                        <div class="card-header"><h3>Manage Section Image</h3></div>
+                        <form action="manage_events.php" method="POST" enctype="multipart/form-data">
+                            <input type="hidden" name="action" value="upload_section_image">
+                            <div class="form-group">
+                                <label>Upload Section Image (JPG/PNG)</label>
+                                <input type="file" name="section_image" accept="image/*" required style="padding:10px;">
+                            </div>
+                            <button type="submit" class="btn-primary">Update Image</button>
+                        </form>
+                    </div>
+
+                    <!-- Existing: Add/Edit Event -->
+                    <div class="card form-card">
+                        <div class="card-header"><h3 id="eventFormTitle">Add Event</h3></div>
+                        <form id="eventForm">
                         <input type="hidden" id="event-id" name="id">
                         <input type="hidden" name="action" value="save">
                         <div class="form-group">
@@ -621,6 +636,7 @@ else $greeting = "Good Evening";
                         <button type="button" id="cancelEventEdit" class="btn-text" style="display:none;" onclick="resetEventForm()">Cancel</button>
                     </form>
                 </div>
+            </div>
 
                 <div class="card list-card">
                     <div class="card-header"><h3>Upcoming Events</h3></div>

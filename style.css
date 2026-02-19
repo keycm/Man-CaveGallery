@@ -1,12 +1,12 @@
 /* === 1. GLOBAL & RESET === */
 :root {
-    --primary: #2c2c2c;       
-    --secondary: #666666;     
-    --accent: #cd853f;        
-    --accent-hover: #b07236;  
-    --brand-red: #ff4d4d;     /* Bright Red */
-    --bg-light: #f8f5f2;      
-    --bg-dark: #222222;       
+    --primary: #121212;
+    --secondary: #555555;
+    --accent: #C5A059;
+    --accent-hover: #B08D48;
+    --brand-red: #8B0000;     /* Dark Red */
+    --bg-light: #f9f9f9;
+    --bg-dark: #1a1a1a;
     --white: #ffffff;
     --border-color: #e0e0e0;
     --shadow-soft: 0 5px 20px rgba(0,0,0,0.05);  
@@ -322,4 +322,37 @@ footer { background: #1a1a1a; color: #bbb; padding: 80px 0 30px; font-size: 0.95
     
     .modal-card { width: 95%; padding: 30px; }
     .modal-card h3 { font-size: 1.5rem; }
+}
+/* === ADDED STYLES FOR UPDATE === */
+.logo img {
+    max-height: 50px;
+    width: auto;
+    transition: 0.3s;
+}
+
+.marquee-nav {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.nav-arrow {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: 0.3s;
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    color: var(--primary);
+}
+
+.nav-arrow:hover {
+    background: var(--accent);
+    color: var(--white);
+    border-color: var(--accent);
 }

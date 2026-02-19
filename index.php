@@ -1,7 +1,7 @@
 <?php
 session_start();
 include 'config.php';
-require_once __DIR__ . '/reset_mailer.php'; 
+require_once __DIR__ . '/reset_mailer.php';
 
 // =================================================================
 // 0. FETCH HERO IMAGES (NEW FEATURE)
@@ -29,9 +29,9 @@ $total_duration = $slide_count * $slide_duration;
 
 // Calculate Keyframe percentages
 // Fade In (1s) -> Hold (4s) -> Fade Out (1s)
-$fade_in_pct = round((1 / $total_duration) * 100, 2); 
-$hold_pct    = round(($slide_duration / $total_duration) * 100, 2); 
-$fade_out_pct = round((($slide_duration + 1) / $total_duration) * 100, 2); 
+$fade_in_pct = round((1 / $total_duration) * 100, 2);
+$hold_pct    = round(($slide_duration / $total_duration) * 100, 2);
+$fade_out_pct = round((($slide_duration + 1) / $total_duration) * 100, 2);
 
 // =================================================================
 // 1. AUTHENTICATION & ACCOUNT LOGIC
@@ -46,13 +46,13 @@ if (isset($_POST['ajax_action'])) {
     try {
         if ($action === 'send_reset_otp') {
             $email = $_POST['email'] ?? '';
-            
+
             // Check if email exists
             $stmt = $conn->prepare("SELECT id, username FROM users WHERE email = ?");
             $stmt->bind_param("s", $email);
             $stmt->execute();
             $res = $stmt->get_result();
-            
+
             if ($res->num_rows > 0) {
                 $user = $res->fetch_assoc();
                 $otp = random_int(100000, 999999);
@@ -62,7 +62,7 @@ if (isset($_POST['ajax_action'])) {
                 // Update DB
                 $update = $conn->prepare("UPDATE users SET reset_token_hash = ?, reset_token_expires_at = ? WHERE id = ?");
                 $update->bind_param("ssi", $otp_hash, $expiry, $user['id']);
-                
+
                 if ($update->execute()) {
                     // Send Email
                     $mail = require __DIR__ . '/reset_mailer.php';
@@ -83,7 +83,7 @@ if (isset($_POST['ajax_action'])) {
             } else {
                 $response = ['status' => 'error', 'message' => 'Email not found.'];
             }
-        } 
+        }
         elseif ($action === 'verify_reset_otp') {
             $email = $_POST['email'] ?? '';
             $otp = $_POST['otp'] ?? '';
@@ -114,7 +114,7 @@ if (isset($_POST['ajax_action'])) {
                 $stmt = $conn->prepare("SELECT id FROM users WHERE email = ? AND reset_token_hash = ? AND reset_token_expires_at > NOW()");
                 $stmt->bind_param("ss", $email, $otp_hash);
                 $stmt->execute();
-                
+
                 if ($stmt->get_result()->num_rows > 0) {
                     $new_hash = password_hash($new_pass, PASSWORD_DEFAULT);
                     $update = $conn->prepare("UPDATE users SET password = ?, reset_token_hash = NULL, reset_token_expires_at = NULL WHERE email = ?");
@@ -130,7 +130,7 @@ if (isset($_POST['ajax_action'])) {
     } catch (Exception $e) {
         $response = ['status' => 'error', 'message' => 'Server error: ' . $e->getMessage()];
     }
-    
+
     echo json_encode($response);
     exit;
 }
@@ -161,7 +161,7 @@ if (isset($_POST['verify_account'])) {
             exit;
         } else {
             $expiry = strtotime($user['reset_token_expires_at']);
-            
+
             // Force string comparison
             $db_otp = (string)$user['account_activation_hash'];
             $input_otp = (string)$otp_input;
@@ -194,14 +194,14 @@ if (isset($_POST['verify_account'])) {
 }
 
 // --- LOGIN LOGIC ---
-if (isset($_POST['login'])) {     
-    $identifier = $_POST['identifier'];     
-    $password = $_POST['password'];      
-    $sql = "SELECT * FROM users WHERE username=? OR email=? LIMIT 1";     
+if (isset($_POST['login'])) {
+    $identifier = $_POST['identifier'];
+    $password = $_POST['password'];
+    $sql = "SELECT * FROM users WHERE username=? OR email=? LIMIT 1";
     $stmt = mysqli_prepare($conn, $sql);
     mysqli_stmt_bind_param($stmt, "ss", $identifier, $identifier);
     mysqli_stmt_execute($stmt);
-    $result = mysqli_stmt_get_result($stmt);     
+    $result = mysqli_stmt_get_result($stmt);
     if ($result && mysqli_num_rows($result) === 1) {
         $row = mysqli_fetch_assoc($result);
         if (!empty($row['account_activation_hash'])) {
@@ -227,7 +227,7 @@ if (isset($_POST['login'])) {
         header("Location: index.php?login=1");
         exit();
     }
-} 
+}
 
 // --- SIGNUP LOGIC ---
 if (isset($_POST['sign'])) {
@@ -235,7 +235,7 @@ if (isset($_POST['sign'])) {
     $email = trim($_POST['email']);
     $password = $_POST['password'];
     $confirm_password = $_POST['confirm_password'];
-  
+
     if (empty($name) || empty($email) || empty($password)) {
         $_SESSION['error_message'] = "All fields are required!";
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -250,14 +250,14 @@ if (isset($_POST['sign'])) {
         $stmt->bind_param("s", $email);
         $stmt->execute();
         $stmt->store_result();
-  
+
         if ($stmt->num_rows > 0) {
             $_SESSION['error_message'] = "Email already registered!";
         } else {
             $password_hash = password_hash($password, PASSWORD_DEFAULT);
             $otp = random_int(100000, 999999);
-            $otp_expiry = date("Y-m-d H:i:s", time() + 60 * 10); 
-  
+            $otp_expiry = date("Y-m-d H:i:s", time() + 60 * 10);
+
             $sql = "INSERT INTO users (username, email, password, account_activation_hash, reset_token_expires_at) VALUES (?, ?, ?, ?, ?)";
             $stmt = $conn->prepare($sql);
             if ($stmt) {
@@ -301,21 +301,21 @@ $seven_days_ago = date('Y-m-d', strtotime('-7 days'));
 $artworks = [];
 
 // UPDATED QUERY: Removed LIMIT 3, Changed ORDER BY to id DESC (Latest)
-$sql_art = "SELECT a.*, 
+$sql_art = "SELECT a.*,
             (
-                SELECT status 
-                FROM bookings b 
-                WHERE (b.artwork_id = a.id OR b.service = a.title) 
-                AND b.status IN ('approved', 'completed') 
+                SELECT status
+                FROM bookings b
+                WHERE (b.artwork_id = a.id OR b.service = a.title)
+                AND b.status IN ('approved', 'completed')
                 ORDER BY b.id DESC LIMIT 1
             ) as active_booking_status,
             (SELECT COUNT(*) FROM favorites f WHERE f.artwork_id = a.id) as fav_count
             FROM artworks a
             WHERE (
-                SELECT COUNT(*) 
+                SELECT COUNT(*)
                 FROM bookings b2
                 WHERE (b2.artwork_id = a.id OR b2.service = a.title)
-                AND b2.status = 'completed' 
+                AND b2.status = 'completed'
                 AND b2.preferred_date < '$seven_days_ago'
             ) = 0
             ORDER BY id DESC"; // Fetching all latest
@@ -327,31 +327,31 @@ if ($res_art) { while ($row = mysqli_fetch_assoc($res_art)) { $artworks[] = $row
 $single_artist = []; // Default empty
 $sql_artist = "SELECT * FROM artists LIMIT 1"; // Fetch only the first artist
 $res_artist = mysqli_query($conn, $sql_artist);
-if ($res_artist && mysqli_num_rows($res_artist) > 0) { 
-    $single_artist = mysqli_fetch_assoc($res_artist); 
+if ($res_artist && mysqli_num_rows($res_artist) > 0) {
+    $single_artist = mysqli_fetch_assoc($res_artist);
 }
 
 // 3. Fetch Services (Gallery Services - LIMIT 3)
 $services_list = [];
 $sql_services = "SELECT * FROM services ORDER BY id ASC LIMIT 3";
-if ($res_services = mysqli_query($conn, $sql_services)) { 
-    while ($row = mysqli_fetch_assoc($res_services)) { $services_list[] = $row; } 
+if ($res_services = mysqli_query($conn, $sql_services)) {
+    while ($row = mysqli_fetch_assoc($res_services)) { $services_list[] = $row; }
 }
 
 // 4. Fetch Events (Upcoming Events - LIMIT 2)
 $events_list = [];
 $sql_events = "SELECT * FROM events ORDER BY event_date ASC LIMIT 2";
-if ($res_events = mysqli_query($conn, $sql_events)) { 
-    while ($row = mysqli_fetch_assoc($res_events)) { $events_list[] = $row; } 
+if ($res_events = mysqli_query($conn, $sql_events)) {
+    while ($row = mysqli_fetch_assoc($res_events)) { $events_list[] = $row; }
 }
 
 // 5. Fetch Client Stories (LIMIT 3)
 $reviews_list = [];
-$sql_review = "SELECT r.*, u.username, s.name as service_name 
-               FROM ratings r 
-               JOIN users u ON r.user_id = u.id 
+$sql_review = "SELECT r.*, u.username, s.name as service_name
+               FROM ratings r
+               JOIN users u ON r.user_id = u.id
                LEFT JOIN services s ON r.service_id = s.id
-               WHERE r.rating >= 4 
+               WHERE r.rating >= 4
                ORDER BY RAND() LIMIT 3";
 if ($res_review = mysqli_query($conn, $sql_review)) {
     while ($row = mysqli_fetch_assoc($res_review)) {
@@ -370,14 +370,14 @@ if ($res_news = mysqli_query($conn, $sql_news)) {
 
 // 7. Fetch User Data for Header
 $user_favorites = [];
-$user_profile_pic = ""; 
+$user_profile_pic = "";
 if ($loggedIn && isset($_SESSION['user_id'])) {
     $uid = $_SESSION['user_id'];
     $fav_sql = "SELECT artwork_id FROM favorites WHERE user_id = $uid";
     if ($fav_res = mysqli_query($conn, $fav_sql)) {
         while($r = mysqli_fetch_assoc($fav_res)){ $user_favorites[] = $r['artwork_id']; }
     }
-    $user_sql = "SELECT username, image_path FROM users WHERE id = $uid"; 
+    $user_sql = "SELECT username, image_path FROM users WHERE id = $uid";
     $user_res = mysqli_query($conn, $user_sql);
     if ($user_data = mysqli_fetch_assoc($user_res)) {
         if (!empty($user_data['image_path'])) {
@@ -394,17 +394,17 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The ManCave Art Gallery</title>
-    
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;800&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Pacifico&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="home.css">
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
-    
+
     <style>
-    
+
             /* ========================================== */
         /* === DYNAMIC SLIDER ANIMATIONS === */
         /* ========================================== */
@@ -425,19 +425,16 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
             }
             <?php endforeach; ?>
         <?php endif; ?>
-        
+
         </style>
-        
+
 </head>
 <body>
 
     <nav class="navbar">
         <div class="container nav-container">
-            <a href="./" class="logo"> <span class="logo-top">THE</span>
-                <span class="logo-main">
-                    <span class="logo-red">M</span><span class="logo-text">an</span><span class="logo-red">C</span><span class="logo-text">ave</span>
-                </span>
-                <span class="logo-bottom">GALLERY</span>
+            <a href="./" class="logo">
+                <img src="uploads/logo.png" alt="The ManCave Gallery" onerror="this.onerror=null; this.src='img-21.jpg';">
             </a>
             <ul class="nav-links" id="navLinks">
                 <li><a href="#home">Home</a></li>
@@ -481,7 +478,7 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
                     <button id="openSignupBtn" class="btn-nav-outline">Sign Up</button>
                     <button id="openLoginBtn" class="btn-nav">Sign In</button>
                 <?php endif; ?>
-                
+
                 <div class="mobile-menu-icon" onclick="toggleMobileMenu()"><i class="fas fa-bars"></i></div>
             </div>
         </div>
@@ -519,7 +516,7 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
                     <h4 class="section-tag">About Us</h4>
                     <h2 class="section-title">A Space for Connection</h2>
                     <p class="section-text">
-                        ManCave Gallery isn't just about hanging pictures on a wall. It's about the conversation that happens in front of them. 
+                        ManCave Gallery isn't just about hanging pictures on a wall. It's about the conversation that happens in front of them.
                         We have been bridging the gap between visionary artists and passionate collectors.
                     </p>
                     <ul class="feature-list">
@@ -541,9 +538,9 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
             <div class="row align-items-center">
                 <div class="col-6" data-aos="fade-right">
                     <div style="box-shadow: 0 15px 40px rgba(0,0,0,0.15); border-radius: 12px; overflow: hidden;">
-                        <?php 
+                        <?php
                             // Check if image exists, otherwise use fallback
-                            $artistImg = !empty($single_artist['image_path']) ? 'uploads/' . $single_artist['image_path'] : 'image_a6bbe0.jpg'; 
+                            $artistImg = !empty($single_artist['image_path']) ? 'uploads/' . $single_artist['image_path'] : 'image_a6bbe0.jpg';
                         ?>
                         <img src="<?php echo htmlspecialchars($artistImg); ?>" alt="Artist Profile" style="width: 100%; display: block;">
                     </div>
@@ -558,7 +555,7 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
                     <p class="section-text">
                         <?php echo !empty($single_artist['bio']) ? nl2br(htmlspecialchars($single_artist['bio'])) : 'Discover the story behind the art...'; ?>
                     </p>
-                    
+
                     <?php if(!empty($single_artist['quote'])): ?>
                         <blockquote style="font-style: italic; color: #666; border-left: 3px solid var(--accent-orange); padding-left: 15px; margin: 20px 0;">
                             "<?php echo htmlspecialchars($single_artist['quote']); ?>"
@@ -578,7 +575,13 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
                     <h4 class="section-tag">Inventory</h4>
                     <h2 class="section-title">Latest Arrivals</h2>
                 </div>
-                <a href="collection" class="btn-outline-dark">View All Works</a> 
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <div class="marquee-nav">
+                        <button class="nav-arrow left" onclick="scrollInventory(-1)"><i class="fas fa-chevron-left"></i></button>
+                        <button class="nav-arrow right" onclick="scrollInventory(1)"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    <a href="collection" class="btn-outline-dark">View All Works</a>
+                </div>
             </div>
 
             <div class="marquee-wrapper" id="marqueeWrapper">
@@ -588,14 +591,13 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
                             <p>No artworks found.</p>
                         </div>
                     <?php else: ?>
-                        <?php 
-                        // DOUBLE LOOP FOR SEAMLESS SCROLL EFFECT
-                        for ($i = 0; $i < 2; $i++): 
-                            foreach ($artworks as $art): 
+                        <?php
+                        // SINGLE LOOP
+                        foreach ($artworks as $art):
                                 $isSold = ($art['status'] === 'Sold' || $art['active_booking_status'] === 'completed');
                                 $isReserved = ($art['status'] === 'Reserved' || $art['active_booking_status'] === 'approved');
                                 $isAvailable = ($art['status'] === 'Available' && !$isSold && !$isReserved);
-                                
+
                                 if ($isSold) {
                                     $statusDisplay = 'Sold';
                                     $statusClass = 'sold';
@@ -617,7 +619,7 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
                                 <?php if(!$isAvailable || $isSold): ?>
                                     <span class="badge-new <?php echo $statusClass; ?>"><?php echo $statusDisplay; ?></span>
                                 <?php endif; ?>
-                                <a href="artwork_details?id=<?php echo $art['id']; ?>" class="art-link-wrapper"> 
+                                <a href="artwork_details?id=<?php echo $art['id']; ?>" class="art-link-wrapper">
                                     <img src="<?php echo htmlspecialchars($imgSrc); ?>" alt="<?php echo htmlspecialchars($art['title']); ?>" draggable="false">
                                     <div class="explore-overlay">
                                         <div class="explore-icon">
@@ -627,34 +629,34 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
                                     </div>
                                 </a>
                             </div>
-                            
+
                             <div class="art-content-new">
                                 <div class="art-title-new"><?php echo htmlspecialchars($art['title']); ?></div>
                                 <div class="art-meta-new">
                                     <span class="artist-name-new"><?php echo htmlspecialchars($art['artist']); ?></span>
                                     <span class="art-year-new">2025</span>
                                 </div>
-                                
+
                                 <div class="art-footer-new">
                                     <span class="price-new">Php <?php echo number_format($art['price']); ?></span>
                                     <div class="action-btns-new">
-                                        <button class="btn-circle btn-heart <?php echo $isFav ? 'active' : ''; ?>" 
-                                                onclick="toggleFavorite(this, <?php echo $art['id']; ?>)" 
+                                        <button class="btn-circle btn-heart <?php echo $isFav ? 'active' : ''; ?>"
+                                                onclick="toggleFavorite(this, <?php echo $art['id']; ?>)"
                                                 title="Toggle Favorite"
                                                 style="width:auto; padding:0 12px; border-radius:50px; display:flex; align-items:center; gap:5px;">
                                             <i class="<?php echo $heartIcon; ?>"></i>
                                             <span class="fav-count" style="font-size:0.8rem; font-weight:700;"><?php echo $favCount; ?></span>
                                         </button>
-                                        
+
                                         <?php if($isSold || $isReserved): ?>
-                                            <button class="btn-circle" 
-                                                    onclick="openCopyModal('<?php echo addslashes($art['title']); ?>')" 
+                                            <button class="btn-circle"
+                                                    onclick="openCopyModal('<?php echo addslashes($art['title']); ?>')"
                                                     title="Request a Copy">
                                                 <i class="fas fa-clone"></i>
                                             </button>
                                         <?php elseif($isAvailable): ?>
-                                            <button class="btn-circle btn-cart" 
-                                                    onclick="animateCart(this); openReserveModal(<?php echo $art['id']; ?>, '<?php echo addslashes($art['title']); ?>')" 
+                                            <button class="btn-circle btn-cart"
+                                                    onclick="animateCart(this); openReserveModal(<?php echo $art['id']; ?>, '<?php echo addslashes($art['title']); ?>')"
                                                     title="Reserve Artwork">
                                                 <i class="fas fa-shopping-cart"></i>
                                             </button>
@@ -667,7 +669,7 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
                                 </div>
                             </div>
                         </div>
-                        <?php endforeach; endfor; ?>
+                        <?php endforeach; ?>
                     <?php endif; ?>
                 </div>
             </div>
@@ -683,9 +685,9 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
             <div class="grid-3">
                 <?php if(empty($services_list)): ?>
                     <p class="text-center" style="grid-column:1/-1;">No services added yet.</p>
-                <?php else: foreach($services_list as $srv): 
+                <?php else: foreach($services_list as $srv):
                     $icons = ['fa-gem', 'fa-crop-alt', 'fa-truck-loading'];
-                    $icon = $icons[array_rand($icons)]; 
+                    $icon = $icons[array_rand($icons)];
                 ?>
                     <div class="service-item" data-aos="zoom-in">
                         <i class="fas <?php echo $icon; ?>"></i>
@@ -709,22 +711,22 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
                     <p class="text-center" style="grid-column: 1/-1;">No updates available.</p>
                 <?php else: foreach($news_list as $news): ?>
                     <div class="news-card-home" data-aos="fade-up">
-                        <?php 
+                        <?php
                             // Only display image container if an image path exists
-                            if(!empty($news['image_path'])): 
+                            if(!empty($news['image_path'])):
                         ?>
                             <div class="news-img-container">
                                 <img src="uploads/<?php echo htmlspecialchars($news['image_path']); ?>" alt="<?php echo htmlspecialchars($news['title']); ?>">
                             </div>
                         <?php endif; ?>
-                        
+
                         <div class="news-content-wrapper">
                             <span class="news-date"><i class="far fa-calendar-alt"></i> <?php echo date('M d, Y', strtotime($news['created_at'])); ?></span>
                             <div class="news-title"><?php echo htmlspecialchars($news['title']); ?></div>
                             <div class="news-preview">
-                                <?php 
+                                <?php
                                     $plain_content = strip_tags($news['content']);
-                                    echo (strlen($plain_content) > 100) ? substr($plain_content, 0, 100) . '...' : $plain_content; 
+                                    echo (strlen($plain_content) > 100) ? substr($plain_content, 0, 100) . '...' : $plain_content;
                                 ?>
                             </div>
                         </div>
@@ -737,14 +739,17 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
     <section id="events" class="section-padding bg-light">
         <div class="container">
             <div class="events-wrapper">
-                <div class="events-content" data-aos="fade-right">
+                <div class="events-image" data-aos="fade-right">
+                    <img src="uploads/events_section.jpg?t=<?php echo time(); ?>" alt="Art Event Crowd" onerror="this.onerror=null; this.src='img-21.jpg';">
+                </div>
+                <div class="events-content" data-aos="fade-left">
                     <h4 class="section-tag">Community</h4>
                     <h2 class="section-title">Upcoming Events</h2>
                     <p class="section-text">Join us for artist talks, exhibition openings, and workshops. Experience art in a social setting.</p>
                     <div class="event-list">
                         <?php if(empty($events_list)): ?>
                             <p>No upcoming events.</p>
-                        <?php else: foreach($events_list as $evt): 
+                        <?php else: foreach($events_list as $evt):
                             $date = strtotime($evt['event_date']);
                         ?>
                             <div class="event-card-row">
@@ -760,9 +765,6 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
                             </div>
                         <?php endforeach; endif; ?>
                     </div>
-                </div>
-                <div class="events-image" data-aos="fade-left">
-                    <img src="img-21.jpg" alt="Art Event Crowd">
                 </div>
             </div>
         </div>
@@ -829,13 +831,13 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
                 </div>
                 <div class="col-6">
                     <div style="height: 100%; min-height: 450px; width: 100%; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-soft);">
-                        <iframe 
-                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3854.4242495197054!2d120.60586927493148!3d14.969136585562088!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33965fd81593ac7b%3A0x548fb1cae8b5e942!2sThe%20ManCave%20Gallery!5e0!3m2!1sen!2sph!4v1764527302397!5m2!1sen!2sph" 
-                            width="100%" 
-                            height="100%" 
-                            style="border:0;" 
-                            allowfullscreen="" 
-                            loading="lazy" 
+                        <iframe
+                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3854.4242495197054!2d120.60586927493148!3d14.969136585562088!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33965fd81593ac7b%3A0x548fb1cae8b5e942!2sThe%20ManCave%20Gallery!5e0!3m2!1sen!2sph!4v1764527302397!5m2!1sen!2sph"
+                            width="100%"
+                            height="100%"
+                            style="border:0;"
+                            allowfullscreen=""
+                            loading="lazy"
                             referrerpolicy="no-referrer-when-downgrade">
                         </iframe>
                     </div>
@@ -843,7 +845,7 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
             </div>
         </div>
     </section>
-    
+
     <footer>
         <div class="container">
             <div class="footer-grid">
@@ -911,11 +913,11 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
             <p>Sign in to continue to your account</p>
             <?php if(isset($_SESSION['error_message']) && isset($_GET['login'])): ?>
                 <div class="alert-error" style="text-align:left;">
-                    <i class="fas fa-exclamation-circle"></i> 
+                    <i class="fas fa-exclamation-circle"></i>
                     <?php echo $_SESSION['error_message']; unset($_SESSION['error_message']); ?>
                 </div>
             <?php endif; ?>
-            <form action="./" method="POST"> 
+            <form action="./" method="POST">
                 <div class="friendly-input-group">
                     <input type="text" name="identifier" required placeholder="Username or Email">
                     <i class="fas fa-user"></i>
@@ -943,11 +945,11 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
             <p>Create an account to reserve unique art</p>
             <?php if(isset($_SESSION['error_message']) && isset($_GET['signup'])): ?>
                 <div class="alert-error" style="text-align:left;">
-                    <i class="fas fa-exclamation-circle"></i> 
+                    <i class="fas fa-exclamation-circle"></i>
                     <?php echo $_SESSION['error_message']; unset($_SESSION['error_message']); ?>
                 </div>
             <?php endif; ?>
-            <form action="./" method="POST"> 
+            <form action="./" method="POST">
                 <div class="friendly-input-group">
                     <input type="text" name="username" required placeholder="Username">
                     <i class="fas fa-user"></i>
@@ -1031,10 +1033,10 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
             <div class="modal-header-icon"><i class="fas fa-check-circle"></i></div>
             <h3>Verify Account</h3>
             <p>Enter the 6-digit code sent to <?php echo htmlspecialchars($_SESSION['otp_email'] ?? 'your email'); ?>.</p>
-            
+
             <?php if(isset($_SESSION['error_message']) && isset($_SESSION['show_verify_modal'])): ?>
                 <div class="alert-error" style="text-align:left;">
-                    <i class="fas fa-exclamation-circle"></i> 
+                    <i class="fas fa-exclamation-circle"></i>
                     <?php echo $_SESSION['error_message']; unset($_SESSION['error_message']); ?>
                 </div>
             <?php endif; ?>
@@ -1054,8 +1056,8 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
             <button class="modal-close">×</button>
             <h3 style="margin-bottom:5px;">Secure Reservation</h3>
             <p style="color:#666; margin-bottom:20px; font-size:0.9rem;">Complete your details to secure this piece.</p>
-            
-            <form action="submit_booking.php" method="POST" enctype="multipart/form-data"> 
+
+            <form action="submit_booking.php" method="POST" enctype="multipart/form-data">
                 <input type="hidden" id="res_art_id" name="artwork_id">
                 <div class="form-group">
                     <label>Selected Artwork</label>
@@ -1097,7 +1099,7 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
             <button class="modal-close">×</button>
             <h3 style="margin-bottom:5px;">Request a Inquiry</h3>
             <p style="color:#666; margin-bottom:20px; font-size:0.9rem;">This piece is sold, but you can request a commission.</p>
-            <form id="commissionForm"> 
+            <form id="commissionForm">
                 <div class="form-group">
                     <label>Email Address</label>
                     <input type="email" name="email" required placeholder="Your email">
@@ -1121,10 +1123,10 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
             <div class="modal-header-icon"><i class="fas fa-star" style="color: #f39c12;"></i></div>
             <h3>Rate Your Experience</h3>
             <p>How was your reservation for "<?php echo htmlspecialchars($rate_booking['service']); ?>"?</p>
-            
+
             <form method="POST">
                 <input type="hidden" name="booking_id" value="<?php echo $rate_booking['id']; ?>">
-                
+
                 <div class="star-rating">
                     <input type="radio" id="star5" name="rating" value="5" required/><label for="star5" title="Excellent">★</label>
                     <input type="radio" id="star4" name="rating" value="4"/><label for="star4" title="Good">★</label>
@@ -1145,7 +1147,7 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
         </div>
     </div>
     <?php endif; ?>
-    
+
     <script>const isLoggedIn = <?php echo $loggedIn ? 'true' : 'false'; ?>;</script>
 
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
@@ -1168,15 +1170,15 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
         const reserveModal = document.getElementById('reserveModal');
         const copyModal = document.getElementById('copyModal');
         const ratingModal = document.getElementById('ratingModal');
-        const messageModal = document.getElementById('messageModal'); 
+        const messageModal = document.getElementById('messageModal');
         const inquirySuccessModal = document.getElementById('inquirySuccessModal'); // NEW MODAL
         const closeBtns = document.querySelectorAll('.modal-close');
 
-        function closeModal(id) { 
+        function closeModal(id) {
             if(id) document.getElementById(id).classList.remove('active');
             else document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
         }
-        
+
         closeBtns.forEach(btn => btn.addEventListener('click', () => closeModal()));
         window.addEventListener('click', (e) => { if (e.target.classList.contains('modal-overlay')) closeModal(); });
 
@@ -1194,7 +1196,7 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
         // PHP Triggered Modals
         <?php if(isset($_GET['login'])): ?> loginModal.classList.add('active'); <?php endif; ?>
         <?php if(isset($_GET['signup'])): ?> signupModal.classList.add('active'); <?php endif; ?>
-        
+
         // AUTO OPEN VERIFY MODAL IF SESSION SET
         <?php if(isset($_SESSION['show_verify_modal'])): ?>
             verifyAccountModal.classList.add('active');
@@ -1235,7 +1237,7 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
             formData.append('ajax_action', 'send_reset_otp');
             formData.append('email', resetEmail);
 
-            fetch('./', { method: 'POST', body: formData }) 
+            fetch('./', { method: 'POST', body: formData })
             .then(r => r.json())
             .then(data => {
                 btn.disabled = false; btn.innerHTML = originalText;
@@ -1261,7 +1263,7 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
             formData.append('email', resetEmail);
             formData.append('otp', otp);
 
-            fetch('./', { method: 'POST', body: formData }) 
+            fetch('./', { method: 'POST', body: formData })
             .then(r => r.json())
             .then(data => {
                 btn.disabled = false; btn.innerHTML = originalText;
@@ -1279,7 +1281,7 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
             e.preventDefault();
             const newPass = document.getElementById('newPass').value;
             const confirmPass = document.getElementById('confirmPass').value;
-            const otp = document.getElementById('otpCode').value; 
+            const otp = document.getElementById('otpCode').value;
             const btn = this.querySelector('button');
             const originalText = btn.innerHTML;
             btn.disabled = true; btn.innerHTML = 'Resetting...';
@@ -1291,7 +1293,7 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
             formData.append('new_password', newPass);
             formData.append('confirm_password', confirmPass);
 
-            fetch('./', { method: 'POST', body: formData }) 
+            fetch('./', { method: 'POST', body: formData })
             .then(r => r.json())
             .then(data => {
                 btn.disabled = false; btn.innerHTML = originalText;
@@ -1322,16 +1324,16 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
         // --- INTERACTION: FAVORITES (AJAX) ---
         window.toggleFavorite = function(btn, id) {
             if(!isLoggedIn) { loginModal.classList.add('active'); return; }
-            
+
             const icon = btn.querySelector('i');
             const countSpan = btn.querySelector('.fav-count');
             let count = parseInt(countSpan.innerText) || 0; // Get current count
-            
+
             const isLiked = btn.classList.contains('active');
             const action = isLiked ? 'remove_id' : 'add_id';
 
             btn.classList.add('animating');
-            
+
             if(isLiked) {
                 // Unlike
                 btn.classList.remove('active');
@@ -1343,7 +1345,7 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
                 icon.classList.remove('far'); icon.classList.add('fas');
                 count++; // Increment
             }
-            
+
             countSpan.innerText = count; // Update UI
 
             // Send Request
@@ -1373,14 +1375,14 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
             if(inquiryForm) {
                 inquiryForm.addEventListener('submit', function(e) {
                     e.preventDefault();
-                    
+
                     const btn = this.querySelector('button[type="submit"]');
                     const originalText = btn.innerHTML;
                     btn.disabled = true;
                     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
-                    
+
                     const formData = new FormData(this);
-                    
+
                     fetch('inquire', { method: 'POST', body: formData })
                     .then(response => response.text())
                     .then(result => {
@@ -1408,14 +1410,14 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
             if(commissionForm) {
                 commissionForm.addEventListener('submit', function(e) {
                     e.preventDefault();
-                    
+
                     const btn = this.querySelector('button[type="submit"]');
                     const originalText = btn.innerHTML;
                     btn.disabled = true;
                     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
-                    
+
                     const formData = new FormData(this);
-                    
+
                     fetch('inquire', { method: 'POST', body: formData }) // Uses existing inquire.php
                     .then(response => response.text())
                     .then(result => {
@@ -1461,9 +1463,9 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
                     notifDropdown.classList.toggle('active');
                     if (userDropdown) userDropdown.classList.remove('active');
                 });
-                
+
                 function fetchNotifications() {
-                    fetch('fetch_notifications') 
+                    fetch('fetch_notifications')
                         .then(res => res.json())
                         .then(data => {
                             if (data.status === 'success') {
@@ -1485,13 +1487,13 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
                                             <div class="notif-time">${notif.created_at}</div>
                                             <button class="btn-notif-close" title="Delete">×</button>
                                         `;
-                                        
+
                                         // Mark Read on Click
                                         item.addEventListener('click', (e) => {
                                             if (e.target.classList.contains('btn-notif-close')) return;
                                             const formData = new FormData();
                                             formData.append('id', notif.id);
-                                            fetch('mark_as_read', { method: 'POST', body: formData }) 
+                                            fetch('mark_as_read', { method: 'POST', body: formData })
                                                 .then(() => fetchNotifications());
                                         });
 
@@ -1501,7 +1503,7 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
                                             if(!confirm('Delete this notification?')) return;
                                             const formData = new FormData();
                                             formData.append('id', notif.id);
-                                            fetch('delete_notifications', { method: 'POST', body: formData }) 
+                                            fetch('delete_notifications', { method: 'POST', body: formData })
                                                 .then(res => res.json())
                                                 .then(d => { if(d.status === 'success') fetchNotifications(); });
                                         });
@@ -1516,7 +1518,7 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
                 if (markAllBtn) {
                     markAllBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        fetch('mark_all_as_read', { method: 'POST' }) 
+                        fetch('mark_all_as_read', { method: 'POST' })
                             .then(() => fetchNotifications());
                     });
                 }
@@ -1534,87 +1536,14 @@ if ($loggedIn && isset($_SESSION['user_id'])) {
         });
 
         // ==========================================
-        // === MARQUEE LOGIC (DRAG & SCROLL ONLY) ===
+        // === MANUAL SCROLL LOGIC ===
         // ==========================================
-        const marqueeTrack = document.getElementById('marqueeTrack');
-        const marqueeWrapper = document.getElementById('marqueeWrapper');
-
-        if (marqueeTrack && marqueeWrapper) {
-            let scrollAmount = 0;
-            // SLOWER SPEED: Reduced from 0.5 to 0.2
-            let speed = 0.8; 
-            let direction = 1; // 1 = Left
-            let isHovered = false;
-            let isDragging = false;
-            let startX, startScrollLeft;
-
-            // Clone content for infinite effect
-            const originalContent = marqueeTrack.innerHTML;
-            marqueeTrack.innerHTML += originalContent; // Duplicate once
-
-            // Animation Loop
-            function animateMarquee() {
-                if (!isDragging && !isHovered) {
-                    scrollAmount -= speed * direction;
-                    const maxScroll = marqueeTrack.scrollWidth / 2;
-
-                    // Wrap around logic
-                    if (direction === 1 && Math.abs(scrollAmount) >= maxScroll) {
-                        scrollAmount = 0;
-                    } else if (direction === -1 && scrollAmount > 0) {
-                        scrollAmount = -maxScroll;
-                    }
-                    
-                    marqueeTrack.style.transform = `translateX(${scrollAmount}px)`;
-                }
-                requestAnimationFrame(animateMarquee);
-            }
-            // Start Loop
-            requestAnimationFrame(animateMarquee);
-
-            // Pause on Hover (Desktop)
-            marqueeWrapper.addEventListener('mouseenter', () => { isHovered = true; });
-            marqueeWrapper.addEventListener('mouseleave', () => { isHovered = false; isDragging = false; });
-
-            // Touch / Mouse Drag Logic
-            const startDrag = (e) => {
-                isDragging = true;
-                isHovered = true; // Pause auto scroll
-                startX = e.pageX || e.touches[0].pageX;
-                // Get current transform value
-                const style = window.getComputedStyle(marqueeTrack);
-                const matrix = new WebKitCSSMatrix(style.transform);
-                startScrollLeft = matrix.m41;
-            };
-
-            const doDrag = (e) => {
-                if (!isDragging) return;
-                e.preventDefault();
-                const x = e.pageX || e.touches[0].pageX;
-                const walk = (x - startX) * 2; // Drag multiplier
-                let newPos = startScrollLeft + walk;
-                
-                // Infinite Scroll Check during Drag
-                const maxScroll = marqueeTrack.scrollWidth / 2;
-                if (newPos > 0) newPos = -maxScroll;
-                if (newPos < -maxScroll) newPos = 0;
-
-                scrollAmount = newPos; // Sync state
-                marqueeTrack.style.transform = `translateX(${newPos}px)`;
-            };
-
-            const endDrag = () => {
-                isDragging = false;
-                isHovered = false; // Resume
-            };
-
-            marqueeWrapper.addEventListener('mousedown', startDrag);
-            marqueeWrapper.addEventListener('mousemove', doDrag);
-            marqueeWrapper.addEventListener('mouseup', endDrag);
-            
-            marqueeWrapper.addEventListener('touchstart', startDrag);
-            marqueeWrapper.addEventListener('touchmove', doDrag);
-            marqueeWrapper.addEventListener('touchend', endDrag);
+        function scrollInventory(direction) {
+            const track = document.getElementById('marqueeTrack');
+            // Check card width by selecting first card
+            const card = track.querySelector('.art-card-new');
+            const cardWidth = card ? (card.offsetWidth + 30) : 330; // 30px gap
+            track.scrollBy({ left: direction * cardWidth, behavior: 'smooth' });
         }
     </script>
 
