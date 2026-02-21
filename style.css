@@ -325,7 +325,7 @@ footer { background: #1a1a1a; color: #bbb; padding: 80px 0 30px; font-size: 0.95
 }
 /* === ADDED STYLES FOR UPDATE === */
 .logo img {
-    max-height: 50px;
+    max-height: 80px;
     width: auto;
     transition: 0.3s;
 }
